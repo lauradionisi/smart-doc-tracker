@@ -15,14 +15,14 @@ export default function Sidebar() {
   ]
 
   return (
-    <aside className="w-64 min-h-screen border-r bg-gray-50 p-4">
-      <div className="mb-8">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+    <aside className="w-64 min-h-screen border-r border-border/30 glass-card backdrop-blur-xl p-6">
+      <div className="mb-8 px-3 pt-4">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-6">
           Menu
         </h2>
       </div>
       
-      <ul className="space-y-1">
+      <ul className="space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -31,10 +31,10 @@ export default function Sidebar() {
             <li key={item.href}>
               <Link 
                 href={item.href} 
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
                   isActive 
-                    ? "bg-blue-50 text-blue-700 font-medium" 
-                    : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-soft scale-105" 
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground hover:scale-102"
                 }`}
               >
                 <Icon className="h-5 w-5" />

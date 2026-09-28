@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// In Prisma 7 l'URL di connessione si trova in prisma.config.ts
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  createdFamilies Family[]
+  memberships     FamilyMember[]
+  documents       Document[]
+  expenses        Expense[]
+  savingsGoals    SavingsGoal[]
+
+  @@map("users")
+}
+
+model Family {
+  id         String   @id @default(uuid())
+  name       String
+  inviteCode String   @unique @map("invite_code")
+  createdBy  String   @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  creator      User           @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  members      FamilyMember[]
+  categories   Category[]
+  documents    Document[]
+  expenses     Expense[]
+  savingsGoals SavingsGoal[]
+  budgets      Budget[]
+
+  @@map("families")
+}
+
+model FamilyMember {
+  id       String   @id @default(uuid())
+  familyId String   @map("family_id")
+  userId   String   @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, userId])
+  @@map("family_members")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  familyId  String?  @map("family_id")
+  name      String
+  icon      String?
+  color     String?
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family   Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+  budgets  Budget[]
+
+  @@map("categories")
+}
+
+model Document {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  familyId   String    @map("family_id")
+  name       String
+  type       String?
+  filePath   String    @map("file_path")
+  fileType   String?   @map("file_type")
+  fileSize   Int?      @map("file_size")
+  uploadDate DateTime  @default(now()) @map("upload_date")
+  expiryDate DateTime? @map("expiry_date") @db.Date
+  status     String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family   Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@map("documents")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  familyId    String   @map("family_id")
+  documentId  String?  @map("document_id")
+  categoryId  String   @map("category_id")
+  amount      Decimal  @db.Decimal(10, 2)
+  description String?
+  expenseDate DateTime @map("expense_date") @db.Date
+  isPersonal  Boolean  @default(true) @map("is_personal")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family   Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  document Document? @relation(fields: [documentId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+
+  @@map("expenses")
+}
+
+model SavingsGoal {
+  id            String    @id @default(uuid())
+  familyId      String    @map("family_id")
+  userId        String    @map("user_id")
+  name          String
+  type          String
+  targetAmount  Decimal?  @map("target_amount") @db.Decimal(10, 2)
+  currentAmount Decimal   @default(0) @map("current_amount") @db.Decimal(10, 2)
+  monthlyAmount Decimal?  @map("monthly_amount") @db.Decimal(10, 2)
+  targetDate    DateTime? @map("target_date") @db.Date
+  isPersonal    Boolean   @default(true) @map("is_personal")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  family       Family               @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions SavingsTransaction[]
+
+  @@map("savings_goals")
+}
+
+model SavingsTransaction {
+  id              String   @id @default(uuid())
+  goalId          String   @map("goal_id")
+  amount          Decimal  @db.Decimal(10, 2)
+  transactionDate DateTime @map("transaction_date") @db.Date
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  goal SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("savings_transactions")
+}
+
+model Budget {
+  id         String   @id @default(uuid())
+  familyId   String   @map("family_id")
+  categoryId String   @map("category_id")
+  amount     Decimal  @db.Decimal(10, 2)
+  period     String   @default("monthly")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  family   Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
+}

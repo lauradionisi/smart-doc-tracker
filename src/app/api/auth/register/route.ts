@@ -16,20 +16,76 @@ type RegisterBody = {
   inviteCode?: unknown;
 };
 
+type FamilySummary = { id: string; name: string; inviteCode: string };
+
+type NewAccount = {
+  name: string;
+  email: string;
+  passwordHash: string;
+  newFamilyName: string | null; // crea una nuova famiglia
+  existingFamily: FamilySummary | null; // si unisce a una famiglia esistente
+};
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-async function generateUniqueInviteCode(familyName: string): Promise<string> {
-  for (let i = 0; i < MAX_INVITE_CODE_ATTEMPTS; i++) {
-    const code = generateInviteCode(familyName);
-    const existing = await prisma.family.findUnique({
-      where: { inviteCode: code },
-      select: { id: true },
-    });
-    if (!existing) return code;
+function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+// User + (Family) + FamilyMember in un'unica transaction: tutto o niente.
+// Se il codice invito generato esiste già (unique constraint) la transaction
+// viene annullata da Postgres: la ripetiamo con un nuovo codice.
+async function createAccount(account: NewAccount) {
+  for (let attempt = 1; ; attempt++) {
+    const progress = { creatingFamily: false };
+
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name: account.name,
+            email: account.email,
+            passwordHash: account.passwordHash,
+          },
+          select: { id: true, name: true, email: true, createdAt: true },
+        });
+
+        let family = account.existingFamily;
+        if (account.newFamilyName) {
+          progress.creatingFamily = true;
+          family = await tx.family.create({
+            data: {
+              name: account.newFamilyName,
+              inviteCode: generateInviteCode(),
+              createdBy: user.id,
+            },
+            select: { id: true, name: true, inviteCode: true },
+          });
+          progress.creatingFamily = false;
+        }
+
+        if (!family) {
+          // Non dovrebbe mai succedere: la validazione garantisce uno dei due casi
+          throw new Error("Nessuna famiglia da associare all'utente");
+        }
+
+        await tx.familyMember.create({
+          data: { familyId: family.id, userId: user.id },
+        });
+
+        return { user, family };
+      });
+    } catch (error) {
+      // P2002 durante la creazione della famiglia = codice invito già usato
+      if (progress.creatingFamily && isUniqueViolation(error)) {
+        if (attempt < MAX_INVITE_CODE_ATTEMPTS) continue;
+        throw new Error("Impossibile generare un codice invito univoco");
+      }
+      throw error;
+    }
   }
-  throw new Error("Impossibile generare un codice invito univoco");
 }
 
 export async function POST(request: Request) {
@@ -91,7 +147,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Con inviteCode: verifichiamo la famiglia PRIMA di creare l'utente
-    let existingFamily: { id: string; name: string; inviteCode: string } | null = null;
+    let existingFamily: FamilySummary | null = null;
     if (hasInviteCode) {
       existingFamily = await prisma.family.findUnique({
         where: { inviteCode: inviteCode.trim().toUpperCase() },
@@ -104,39 +160,14 @@ export async function POST(request: Request) {
 
     // 4. Hash della password
     const passwordHash = await bcrypt.hash(password, 10);
-    const newFamilyData = hasFamilyName
-      ? { name: familyName.trim(), inviteCode: await generateUniqueInviteCode(familyName) }
-      : null;
 
     // 5. User + (Family) + FamilyMember: tutto o niente
-    const { user, family } = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name: name.trim(),
-          email: normalizedEmail,
-          passwordHash,
-        },
-        select: { id: true, name: true, email: true, createdAt: true },
-      });
-
-      // Nuova famiglia (familyName) oppure famiglia esistente (inviteCode)
-      const family = newFamilyData
-        ? await tx.family.create({
-            data: { ...newFamilyData, createdBy: user.id },
-            select: { id: true, name: true, inviteCode: true },
-          })
-        : existingFamily;
-
-      if (!family) {
-        // Non dovrebbe mai succedere: la validazione garantisce uno dei due casi
-        throw new Error("Nessuna famiglia da associare all'utente");
-      }
-
-      await tx.familyMember.create({
-        data: { familyId: family.id, userId: user.id },
-      });
-
-      return { user, family };
+    const { user, family } = await createAccount({
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      newFamilyName: hasFamilyName ? familyName.trim() : null,
+      existingFamily,
     });
 
     // 6. Login automatico dopo la registrazione

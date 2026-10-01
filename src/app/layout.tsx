@@ -1,7 +1,18 @@
 import type { Metadata } from "next"
 import "./globals.css"
-import Navbar from "@/components/Navbar"
-import Sidebar from "@/components/Sidebar"
+
+// Eseguito dal browser prima del primo disegno della pagina: applica subito il tema
+// salvato (o quello del sistema) ed evita il flash del tema chiaro.
+// Stesse regole di ThemeToggle.
+const themeScript = `(function () {
+  try {
+    var theme = localStorage.getItem("theme");
+    if (theme !== "dark" && theme !== "light") {
+      theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  } catch (e) {}
+})();`
 
 export const metadata: Metadata = {
   title: "Smart Doc Tracker",
@@ -14,14 +25,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="it">
-      <body className="flex min-h-screen bg-white text-gray-900">
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <Navbar />
-          <main className="p-6">{children}</main>
-        </div>
-      </body>
+    // suppressHydrationWarning: la classe "dark" su <html> viene aggiunta dallo script
+    // prima che React prenda il controllo, quindi differisce dall'HTML del server
+    <html lang="it" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-screen bg-white text-gray-900">{children}</body>
     </html>
   )
 }

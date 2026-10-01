@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { Search, Upload } from "lucide-react"
 import ThemeToggle from "@/components/ThemeToggle"
+import LogoutButton from "@/components/LogoutButton"
 
-export default function Navbar() {
+export default function Navbar({ userName }: { userName: string }) {
   return (
     <nav className="w-full h-16 glass-card border-b border-border/30 backdrop-blur-xl flex items-center justify-between px-6">
       <h1 className="font-bold text-xl text-foreground">Smart Doc Tracker</h1>
@@ -19,9 +20,8 @@ export default function Navbar() {
         
         <ThemeToggle />
         
-        <div className="ml-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
-          Login
-        </div>
+        <span className="ml-2 text-sm font-medium text-foreground">{userName}</span>
+        <LogoutButton />
       </div>
     </nav>
   )

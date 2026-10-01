@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, FileText, Upload, Settings } from "lucide-react"
+import { Home, FileText, Upload, Settings, Users } from "lucide-react"
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -10,6 +10,7 @@ export default function Sidebar() {
   const menuItems = [
     { href: "/", label: "Dashboard", icon: Home },
     { href: "/documents", label: "Documenti", icon: FileText },
+    { href: "/family", label: "Famiglia", icon: Users },
     { href: "/upload", label: "Carica", icon: Upload },
     { href: "/settings", label: "Impostazioni", icon: Settings },
   ]

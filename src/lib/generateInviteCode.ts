@@ -1,23 +1,18 @@
 import { randomInt } from "crypto";
 
-const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+// Alfabeto senza caratteri ambigui: niente 0/O e 1/I/L
+const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 8;
 
 /**
- * Genera un codice invito tipo "BIA-A3F9":
- * 3 lettere dal nome della famiglia + 4 caratteri casuali.
+ * Genera un codice invito casuale tipo "K7M2-X9PQ":
+ * 8 caratteri generati con crypto, con un trattino a metà per leggibilità.
  */
-export function generateInviteCode(familyName: string): string {
-  const prefix = familyName
-    .normalize("NFD")
-    .replace(/[^a-zA-Z]/g, "") // rimuove accenti, spazi, numeri e simboli
-    .toUpperCase()
-    .slice(0, 3)
-    .padEnd(3, "X");
-
-  let suffix = "";
-  for (let i = 0; i < 4; i++) {
-    suffix += CHARS[randomInt(CHARS.length)];
+export function generateInviteCode(): string {
+  let code = "";
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    code += ALPHABET[randomInt(ALPHABET.length)];
   }
 
-  return `${prefix}-${suffix}`;
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
 }

@@ -31,7 +31,8 @@ export default function LogoutButton() {
       className="gap-2 rounded-full btn-outline-readable backdrop-blur-sm"
     >
       <LogOut className="h-4 w-4" />
-      {loading ? "Uscita…" : "Esci"}
+      {/* Su mobile solo l'icona: il testo resta per gli screen reader */}
+      <span className="sr-only sm:not-sr-only">{loading ? "Uscita…" : "Esci"}</span>
     </Button>
   )
 }

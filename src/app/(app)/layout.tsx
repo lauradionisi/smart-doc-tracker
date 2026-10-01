@@ -19,9 +19,12 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col">
         <Navbar userName={user.name ?? user.email} />
-        <main className="p-6">{children}</main>
+        {/* Colonna centrale con larghezza massima, per tutte le pagine */}
+        <main className="p-4 md:p-6">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
       </div>
     </div>
   )

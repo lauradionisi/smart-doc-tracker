@@ -69,6 +69,21 @@ export async function deleteSession(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE);
 }
 
+// Utente loggato + la sua famiglia (una persona appartiene a una sola famiglia).
+// La famiglia si ricava sempre dalla sessione, mai dal body della richiesta.
+export async function getCurrentFamily() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const membership = await prisma.familyMember.findFirst({
+    where: { userId: user.id },
+    select: { familyId: true },
+  });
+  if (!membership) return null;
+
+  return { user, familyId: membership.familyId };
+}
+
 export async function getUserFamilies(userId: string) {
   const memberships = await prisma.familyMember.findMany({
     where: { userId },

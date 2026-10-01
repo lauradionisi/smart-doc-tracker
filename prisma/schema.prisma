@@ -18,7 +18,8 @@ model User {
   createdFamilies Family[]
   memberships     FamilyMember[]
   documents       Document[]
-  expenses        Expense[]
+  expenses        Expense[]      @relation("ExpensePaidBy")
+  createdExpenses Expense[]      @relation("ExpenseCreatedBy")
   savingsGoals    SavingsGoal[]
   sessions        Session[]
 
@@ -107,7 +108,8 @@ model Document {
 
 model Expense {
   id          String   @id @default(uuid())
-  userId      String   @map("user_id")
+  userId      String   @map("user_id") // chi ha pagato
+  createdById String   @map("created_by") // chi ha inserito la spesa (sempre l'utente loggato)
   familyId    String   @map("family_id")
   documentId  String?  @map("document_id")
   categoryId  String   @map("category_id")
@@ -118,10 +120,11 @@ model Expense {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  family   Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  document Document? @relation(fields: [documentId], references: [id])
-  category Category  @relation(fields: [categoryId], references: [id])
+  paidBy    User      @relation("ExpensePaidBy", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  family    Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  document  Document? @relation(fields: [documentId], references: [id])
+  category  Category  @relation(fields: [categoryId], references: [id])
 
   @@map("expenses")
 }

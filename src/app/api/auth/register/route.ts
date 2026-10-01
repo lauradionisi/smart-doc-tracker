@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateInviteCode } from "@/lib/generateInviteCode";
+import { createSession } from "@/lib/auth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVITE_CODE_ATTEMPTS = 5;
@@ -107,7 +108,10 @@ export async function POST(request: Request) {
       return { user, family };
     });
 
-    // 5. Risposta senza password
+    // 5. Login automatico dopo la registrazione
+    await createSession(user.id);
+
+    // 6. Risposta senza password
     return NextResponse.json({ user, family }, { status: 201 });
   } catch (error) {
     // Registrazione concorrente con la stessa email

@@ -20,8 +20,20 @@ model User {
   documents       Document[]
   expenses        Expense[]
   savingsGoals    SavingsGoal[]
+  sessions        Session[]
 
   @@map("users")
+}
+
+model Session {
+  id        String   @id // hash SHA-256 del token, mai il token in chiaro
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model Family {
